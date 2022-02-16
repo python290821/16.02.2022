@@ -1,45 +1,40 @@
-from threading import Semaphore, Thread, Event
-import json
-import time
-import sys
+from ConnectionPoolSingleton import ConnectionPoolSingleton
+from MyConnection import MyConnection
+from threading import Semaphore, Thread
 import time
 import logging
 
 logging.basicConfig(level=logging.DEBUG,
                     format='(%(threadName)-9s) %(message)s', )
 
-def wait_for_event(e):
-    logging.debug('wait_for_event starting')
-    event_is_set = e.wait()
-    logging.debug('event set: %s', event_is_set)
+pool = ConnectionPoolSingleton.get_instance()
 
+conn1 = pool.get_connection()
+#logging.debug(conn1)
+conn2 = pool.get_connection()
+#logging.debug(conn2)
 
-def wait_for_event_timeout(e, t):
-    while not e.is_set():
-        logging.debug('wait_for_event_timeout starting')
-        event_is_set = e.wait(t)
-        logging.debug('event set: %s', event_is_set)
-        if event_is_set:
-            logging.debug('processing event')
-        else:
-            logging.debug('doing other things')
+def delay_return(t, conn):
+    time.sleep(t)
+    pool.return_connection(conn)
 
-if __name__ == '__main__':
-    e = Event()
-    t1 = Thread(name='blocking',
-                          target=wait_for_event,
-                          args=(e,))
-    t1.start()
+def delay_take(t):
+    time.sleep(t)
+    pool.get_connection()
 
-    t2 = Thread(name='non-blocking',
-                          target=wait_for_event_timeout,
-                          args=(e, 5))
-    t2.start()
+Thread(name='thread-3', target=delay_take,
+                          args=(2,)).start()
 
-    logging.debug('Waiting before calling Event.set()')
-    time.sleep(10)
-    e.set()
-    logging.debug('Event is set')
+Thread(name='thread-1', target=delay_return,
+                          args=(5,conn2)).start()
 
+conn3 = pool.get_connection()
+#logging.debug(conn3)
 
-sys.exit(0)
+Thread(name='thread-2', target=delay_return,
+                          args=(3,conn2)).start()
+Thread(name='thread-4', target=delay_return,
+                          args=(5,MyConnection(20))).start()
+conn4 = pool.get_connection()
+#logging.debug(conn4)
+
