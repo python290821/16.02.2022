@@ -17,7 +17,7 @@ def wait_for_event(e):
 def wait_for_event_timeout(e, t):
     while not e.isSet():
         logging.debug('wait_for_event_timeout starting')
-        event_is_set = e.wait(2)
+        event_is_set = e.wait(t)
         logging.debug('event set: %s', event_is_set)
         if event_is_set:
             logging.debug('processing event')
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     t2 = Thread(name='non-blocking',
                           target=wait_for_event_timeout,
-                          args=(e, 2000))
+                          args=(e, 2))
     t2.start()
 
     logging.debug('Waiting before calling Event.set()')
